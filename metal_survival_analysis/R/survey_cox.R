@@ -169,15 +169,3 @@ write_table(bind_rows(cox_rows), file.path(RUN_DIR, "results", "cox_by_imputatio
 write_table(bind_rows(spline_rows), file.path(RUN_DIR, "results", "cox_pspline_curves.csv"))
 write_table(bind_rows(spline_tests), file.path(RUN_DIR, "results", "cox_pspline_tests.csv"))
 write_table(bind_rows(diagnostic_rows), file.path(RUN_DIR, "results", "cox_pspline_status.csv"))
-writeLines(c(
-  "Descriptives use survey::svymean for means/proportions and design-based standard errors.",
-  "These are explicit survey equivalents of the reference's TableOne summaries; tableone is not required.",
-  "unweighted_n is a raw observed count; estimates are weighted means or proportions, not weighted counts.",
-  "All five imputations are reported separately. No MI pooling is performed.",
-  "The full design is constructed before selecting each model cohort.",
-  "Cox HRs are supplemental estimates per one unit of the saved exposure term; CQR estimates remain in years.",
-  "Cox HR confidence intervals follow the reference's coefficient +/- 1.96*SE calculation.",
-  "Spline diagnostics follow the reference's unweighted coxph(pspline()) method and are exploratory.",
-  "Spline curve bands describe centered term contributions; they are not CQR, survey, or MI-pooled intervals.",
-  "Quantile g-computation is not run: it changes the estimand and needs a joint-cohort weighting specification."
-), file.path(RUN_DIR, "results", "DESCRIPTIVE_COX_METHODS.txt"))

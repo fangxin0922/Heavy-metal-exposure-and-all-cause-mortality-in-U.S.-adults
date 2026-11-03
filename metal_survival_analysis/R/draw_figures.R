@@ -77,47 +77,36 @@ if (file.exists(spline_path)) {
   }
 }
 
-# Compare available primary estimates with the baseline run.
-fresh_path <- file.path(RUN_DIR, "results", "results_by_imputation.csv")
-previous_path <- file.path(PROJECT_ROOT, "replication_through_2014",
-                           "official_crq_builtin_20261029", "results_by_imputation.csv")
-if (file.exists(fresh_path) && file.exists(previous_path)) {
-  fresh <- read.csv(fresh_path)
-  previous <- read.csv(previous_path)
-  if ("branch" %in% names(fresh)) fresh <- fresh[fresh$branch == "fresh", ]
-  required <- c("scenario", "imputation", "term", "tau", "estimate")
-  stopifnot(all(required %in% names(fresh)), all(required %in% names(previous)))
-  comparison <- merge(previous[, required], fresh[, required],
-                      by = c("scenario", "imputation", "term", "tau"),
-                      suffixes = c("_previous", "_fresh"), all = TRUE)
-  comparison <- comparison[comparison$scenario %in% PRIMARY, ]
-  good <- with(comparison, is.finite(estimate_previous) & is.finite(estimate_fresh))
-  finite_comparison <- comparison[good, ]
-  if (nrow(finite_comparison)) save_figure("cqr_previous_vs_fresh", function() {
-    par(mfrow = c(1, length(TAUS)), mar = c(5, 5, 3, 1), oma = c(4, 0, 2, 0))
-    for (tau in TAUS) {
-      part <- finite_comparison[abs(finite_comparison$tau - tau) < 1e-10, ]
-      if (!nrow(part)) {
-        plot.new(); title(paste("Quantile", tau)); text(0.5, 0.5, "No comparable estimates")
-        next
+# Show each CQR estimate and its imputation-specific interval.
+cqr_path <- file.path(RUN_DIR, "results", "results_by_imputation.csv")
+if (file.exists(cqr_path)) {
+  cqr <- read.csv(cqr_path)
+  cqr <- cqr[cqr$scenario %in% PRIMARY, ]
+  for (tau in TAUS) {
+    save_figure(paste0("cqr_quantile_", format(tau, trim = TRUE)), function() {
+      par(mfrow = c(2, 2), mar = c(4.2, 5, 3, 1), oma = c(2, 0, 2, 0))
+      for (scenario in PRIMARY) {
+        part <- cqr[cqr$scenario == scenario & abs(cqr$tau - tau) < 1e-10, ]
+        limits <- c(0, part$estimate, part$lower, part$upper)
+        limits <- range(limits[is.finite(limits)])
+        limits <- limits + c(-1, 1) * max(diff(limits) * 0.08, 0.05)
+        plot(NA, NA, xlim = limits, ylim = c(0.5, 5.5), yaxt = "n",
+             xlab = "Conditional survival-time difference (years)", ylab = "",
+             main = labels[[scenario]])
+        axis(2, at = 1:5, labels = paste("MI", 5:1), las = 1)
+        abline(v = 0, col = "grey65", lty = 2)
+        y <- 6 - part$imputation
+        interval <- is.finite(part$lower) & is.finite(part$upper)
+        segments(part$lower[interval], y[interval], part$upper[interval], y[interval],
+                 col = colors[[scenario]], lwd = 2)
+        observed <- is.finite(part$estimate)
+        points(part$estimate[observed], y[observed], col = colors[[scenario]], pch = 19)
+        if (any(!observed)) text(mean(limits), y[!observed], "Unavailable", cex = 0.75, col = "grey45")
       }
-      extent <- range(c(part$estimate_previous, part$estimate_fresh), finite = TRUE)
-      span <- max(diff(extent), 0.05)
-      extent <- extent + c(-0.1, 0.1) * span
-      plot(part$estimate_previous, part$estimate_fresh,
-           xlim = extent, ylim = extent, asp = 1,
-           pch = part$imputation + 14, col = colors[part$scenario],
-           xlab = "Previous CQR estimate (years)", ylab = "Fresh CQR estimate (years)",
-           main = paste("Quantile", tau))
-      abline(a = 0, b = 1, col = "grey55", lty = 2)
-    }
-    mtext("CQR refactor agreement: each symbol is one metal and imputation", side = 3, outer = TRUE)
-    par(xpd = NA)
-    legend("bottom", inset = c(0, -0.65), legend = unname(labels),
-           col = unname(colors), pch = 19, bty = "n", ncol = 2, cex = 0.8)
-    mtext(paste(sum(!good), "matched or unmatched cells with unavailable estimates omitted"),
-          side = 1, outer = TRUE, line = 3, cex = 0.8)
-  }, width = 13, height = 5)
+      mtext(paste("Censored quantile regression: quantile", tau), outer = TRUE, side = 3)
+      mtext("Per exposure doubling; package intervals are not MI-pooled or survey-design-adjusted",
+            outer = TRUE, side = 1, cex = 0.8)
+    })
+  }
 }
-
-message("Available result figures were saved in ", file.path(RUN_DIR, "figures"))
+message("Figures saved in ", file.path(RUN_DIR, "figures"))

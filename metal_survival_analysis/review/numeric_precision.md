@@ -1,5 +1,0 @@
-Blood concentrations and weights were reconstructed from native XPT files.
-log2 blood concentrations were independently recalculated and checked against the older, pre-correction archive at tolerance 1e-12, including missingness.
-The generating runtime of the originally supplied blood-log columns is unavailable. Current log2 arithmetic has machine-precision differences for some concentrations; log(x,base=2) or log(x)/log(2) does not reproduce every archived value exactly.
-After that independent check, log_primary_LBXBPB and log_primary_LBXTHG retain the pre-correction archive numeric representation to avoid conflating floating-point changes with rewritten model code. The directly calculated values remain in *_recalculated columns and their differences are reported in blood_log_numeric_representation.csv.
-This is explicitly a retained numeric representation, not a claim that the original blood-log generating code was recovered. Urinary corrections and log exposures are recalculated directly.

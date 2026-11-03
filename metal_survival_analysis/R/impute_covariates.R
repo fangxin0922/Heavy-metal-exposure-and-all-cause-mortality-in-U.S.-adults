@@ -5,19 +5,12 @@ requested <- if (length(args)) args[1] else PRIMARY[1]
 stopifnot(requested %in% SCENARIOS$scenario)
 scenario <- SCENARIOS %>% filter(.data$scenario == requested)
 destination <- file.path(RUN_DIR, "models", requested)
-dir.create(destination, recursive = TRUE, showWarnings = FALSE)
-if (file.exists(file.path(destination, "imputations.rds"))) {
-  manifest <- readRDS(file.path(destination, "fresh_artifact_manifest.rds"))
-  stopifnot(identical(unname(tools::md5sum(names(manifest$hashes))), unname(manifest$hashes)),
-            identical(manifest$R, R.version.string),
-            identical(manifest$mice, as.character(packageVersion("mice"))))
-  previous <- readRDS(file.path(destination, "specification.rds"))
-  stopifnot(identical(unname(tools::md5sum(names(previous$input_hashes))), unname(previous$input_hashes)))
-  message("Validated completed fresh imputations: ", requested)
-  quit(save = "no")
+if (dir.exists(destination) && length(list.files(destination, all.files = TRUE, no.. = TRUE))) {
+  stop("Imputation output already exists; use an empty output directory for a new run.")
 }
+dir.create(destination, recursive = TRUE, showWarnings = FALSE)
 
-input <- readRDS(file.path(RUN_DIR, "data/analytic_fresh.rds"))
+input <- readRDS(file.path(RUN_DIR, "data/analytic.rds"))
 full_designs <- readRDS(file.path(RUN_DIR, "data/full_designs.rds"))
 metal <- scenario$metal
 exposure <- paste0("log_primary_", metal)
@@ -39,7 +32,7 @@ component <- full_designs[[scenario$design_metal]]
 index <- match(analysis$SEQN, component$SEQN)
 stopifnot(!anyNA(index), !anyDuplicated(component$SEQN))
 analysis$w_metal <- component$w_metal[index]
-# Retain historical Pb weights at machine precision.
+# Keep the supplied Pb weights at their original precision.
 if (metal == "LBXBPB" && scenario$panel %in% c("primary", "portnoy")) {
   analysis$w_metal <- analysis$weight_LBXBPB
 }
@@ -64,27 +57,9 @@ specification <- list(scenario = requested, panel = scenario$panel, metal = meta
   events = sum(frame$event), row_ids = frame$SEQN, formula = formula,
   term = exposure, terms = terms, covariates = covariates, knots = knots,
   M = M, iterations = MAXIT, seed = MI_SEED,
-  sampling_weights = component$w_metal[index],
-  input_hashes = tools::md5sum(file.path(RUN_DIR, "data", c("analytic_fresh.rds", "full_designs.rds"))))
+  sampling_weights = component$w_metal[index])
 save_result(frame, file.path(destination, "preimputation_frame.rds"))
 save_result(specification, file.path(destination, "specification.rds"))
-
-# Verify cohort membership and inputs before imputation.
-old_path <- file.path(PROJECT_ROOT, "replication_through_2014/remote_execution/models",
-                      requested, "preimputation_frame.rds")
-if (file.exists(old_path)) {
-  old <- readRDS(old_path)
-  stopifnot(identical(as.numeric(old$SEQN), as.numeric(frame$SEQN)),
-            identical(names(old), names(frame)))
-  checks <- bind_rows(lapply(names(frame), function(variable) {
-    same <- isTRUE(all.equal(old[[variable]], frame[[variable]], tolerance = 1e-12,
-                            check.attributes = TRUE))
-    data.frame(variable = variable, agrees = same,
-               exact = identical(old[[variable]], frame[[variable]]))
-  }))
-  write_table(checks, file.path(destination, "frame_comparison.csv"))
-  stopifnot(all(checks$agrees))
-}
 
 fixed <- unique(c("SEQN", "SDDSRVYR", "SDMVSTRA", "SDMVPSU", "w_metal",
                   "followup_yrs", "event", exposure, terms, "cycle_f"))
@@ -96,7 +71,7 @@ method[fixed] <- ""
 predictors[fixed, ] <- 0
 predictors[, c("SEQN", "SDDSRVYR", "SDMVSTRA", "SDMVPSU")] <- 0
 if (scenario$panel == "rcs") predictors[, exposure] <- 0
-cat(format(Sys.time()), "Starting fresh MICE:", requested, "N=", nrow(frame), "\n")
+cat(format(Sys.time()), "Starting MICE:", requested, "N=", nrow(frame), "\n")
 imputed <- mice(frame, m = M, maxit = MAXIT, method = method,
                 predictorMatrix = predictors, seed = MI_SEED,
                 remove.collinear = FALSE, printFlag = TRUE)
@@ -108,8 +83,7 @@ for (dataset in completed) {
 }
 save_result(imputed, file.path(destination, "mice_object.rds"))
 save_result(list(data = completed, row_ids = frame$SEQN, method = method,
-                 predictor_matrix = predictors, seed = MI_SEED, iterations = MAXIT,
-                 provenance = "New MICE call; no historical imputations or fits loaded"),
+                 predictor_matrix = predictors, seed = MI_SEED, iterations = MAXIT),
             file.path(destination, "imputations.rds"))
 events <- imputed$loggedEvents
 if (is.null(events)) events <- data.frame(it = integer(), im = integer(), dep = character(), meth = character(), out = character())
@@ -117,9 +91,3 @@ write_table(events, file.path(destination, "mice_logged_events.csv"))
 pdf(file.path(destination, "mice_trace.pdf"), width = 11, height = 8.5)
 print(plot(imputed))
 dev.off()
-writeLines(c("complete", as.character(Sys.time()), "Fresh MICE: 5 imputations, 20 iterations, seed 4242."),
-           file.path(destination, "STATUS.txt"))
-save_result(list(hashes = tools::md5sum(file.path(destination,
-  c("specification.rds", "preimputation_frame.rds", "mice_object.rds", "imputations.rds"))),
-  R = R.version.string, mice = as.character(packageVersion("mice"))),
-  file.path(destination, "fresh_artifact_manifest.rds"))

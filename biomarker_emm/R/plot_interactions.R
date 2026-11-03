@@ -1,6 +1,6 @@
 # Plot the primary CQR interaction estimates in years.
 
-source("replication_through_2014/remote_execution/R/runtime.R")
+source("biomarker_emm/R/settings.R")
 # Set HM_R_LIBRARY to the ggplot2 3.5.2 library if it is outside the default search path.
 # This script runs in a separate process and does not load or fit CQR models.
 PLOT_LIBRARY <- Sys.getenv("HM_R_LIBRARY", unset = "")
@@ -11,7 +11,6 @@ suppressPackageStartupMessages({
 })
 stopifnot(as.character(packageVersion("ggplot2")) == "3.5.2")
 
-OUTPUT_DIR <- "nutrient_biomarker_emm_run_2026-11-02/project_style_v3/full_run_2026-11-03"
 dir.create(file.path(OUTPUT_DIR, "figures"), showWarnings = FALSE)
 results <- read_csv(file.path(OUTPUT_DIR, "aggregate", "results.csv"),
   show_col_types = FALSE)
@@ -56,10 +55,3 @@ ggsave(file.path(OUTPUT_DIR, "figures", "primary_interaction.pdf"),
   figure, width = 12, height = 5.3, units = "in")
 ggsave(file.path(OUTPUT_DIR, "figures", "primary_interaction.png"),
   figure, width = 12, height = 5.3, units = "in", dpi = 180)
-writeLines(capture.output(sessionInfo()), file.path(OUTPUT_DIR, "aggregate", "plot_session.txt"))
-packages <- c("ggplot2", "dplyr", "readr")
-package_paths <- vapply(packages, find.package, character(1))
-write.csv(data.frame(package = packages,
-  version = vapply(packages, function(p) as.character(packageVersion(p)), character(1)),
-  path = package_paths, description_md5 = unname(tools::md5sum(file.path(package_paths, "DESCRIPTION")))),
-  file.path(OUTPUT_DIR, "aggregate", "plot_package_provenance.csv"), row.names = FALSE)

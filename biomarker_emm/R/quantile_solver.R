@@ -1,9 +1,7 @@
-# Explicit numerical conventions for the revised Peng-Huang analysis.
-# This does not source or modify the supplied analysis helpers.
-# The dense native calculation matches quantreg 6.1 crq.fit.pen; unlike its
-# public wrapper, this interface retains native info and handles zero solutions.
+# Prepare and fit Peng-Huang censored quantile models.
+# Native-call conventions follow quantreg (GPL >= 2); see README.md.
 
-revised_cqr_grid <- function(n, taus=c(.10, .25, .50), upper=NULL) {
+cqr_grid <- function(n, taus=c(.10, .25, .50), upper=NULL) {
   stopifnot(length(n)==1L, is.finite(n), n>2,
             all(is.finite(taus)), all(taus>0 & taus<1))
   step <- min(.01, 1/(2*n^.7))
@@ -15,7 +13,7 @@ revised_cqr_grid <- function(n, taus=c(.10, .25, .50), upper=NULL) {
   g
 }
 
-revised_cqr_prepare <- function(formula, data, grid=NULL,
+cqr_prepare <- function(formula, data, grid=NULL,
                                 taus=c(.10, .25, .50), standardize=TRUE) {
   if (!requireNamespace("quantreg", quietly=TRUE)) stop("quantreg is required")
   if (!requireNamespace("survival", quietly=TRUE)) stop("survival is required")
@@ -30,7 +28,7 @@ revised_cqr_prepare <- function(formula, data, grid=NULL,
     stop("A right-censored survival::Surv response is required")
   if (any(!is.finite(X)) || any(!is.finite(Y)) || any(!Y[,2] %in% c(0,1)))
     stop("Nonfinite model inputs or an invalid event indicator")
-  if (is.null(grid)) grid <- revised_cqr_grid(nrow(X), taus)
+  if (is.null(grid)) grid <- cqr_grid(nrow(X), taus)
   if (!is.numeric(grid) || length(grid)<4 || any(!is.finite(grid)) ||
       any(diff(grid)<=0) || min(grid)<=0 || max(grid)>=1 ||
       min(grid)>=min(taus) || max(grid)<=max(taus))
@@ -53,11 +51,10 @@ revised_cqr_prepare <- function(formula, data, grid=NULL,
     formula=formula, contrasts=attr(X,"contrasts"),
     matrix_rank=qr(Xs,tol=1e-10)$rank,
     condition_number=tryCatch(kappa(Xs,exact=FALSE),error=function(e)NA_real_),
-    quantreg_version=as.character(utils::packageVersion("quantreg")),
-    solver_version="revised-pen-1.0"), class="revised_cqr_prepared")
+    solver="Peng-Huang"), class="cqr_prepared")
 }
 
-revised_pen_native <- function(x,y,cen,weights,grid) {
+ph_native_unchecked <- function(x,y,cen,weights,grid) {
   # Source-equivalent call, with information retained rather than discarded.
   loadNamespace("quantreg")
   p <- ncol(x); n <- length(y); m <- length(grid)
@@ -76,7 +73,7 @@ revised_pen_native <- function(x,y,cen,weights,grid) {
   list(beta=B, tau=grid[seq_len(J)], native_info=z$info, native_m=z$m)
 }
 
-revised_cqr_backtransform <- function(prepared, beta) {
+cqr_backtransform <- function(prepared, beta) {
   beta <- as.matrix(beta)
   ans <- sweep(beta,1,prepared$scale,"/")
   if (!is.na(prepared$intercept)) {
@@ -87,9 +84,9 @@ revised_cqr_backtransform <- function(prepared, beta) {
   ans
 }
 
-revised_cqr_fit <- function(prepared, weights, coefficient_names=NULL,
+cqr_fit <- function(prepared, weights, coefficient_names=NULL,
                             weight_constant=NULL, keep_path=FALSE) {
-  stopifnot(inherits(prepared,"revised_cqr_prepared"))
+  stopifnot(inherits(prepared,"cqr_prepared"))
   started <- proc.time()[["elapsed"]]
   weights <- as.numeric(weights)
   if (is.null(coefficient_names)) coefficient_names <- prepared$coefficient_names
@@ -97,7 +94,7 @@ revised_cqr_fit <- function(prepared, weights, coefficient_names=NULL,
     stop("Unknown requested coefficient name")
   cf <- matrix(NA_real_,length(coefficient_names),length(prepared$taus),
     dimnames=list(coefficient_names,sprintf("tau=%.2f",prepared$taus)))
-  dg <- list(solver_version=prepared$solver_version, quantreg_version=prepared$quantreg_version,
+  dg <- list(
     n_original=prepared$n,n_positive=0L,n_zero=0L,p=prepared$p,rank=NA_integer_,
     event_rows=NA_integer_,weight_constant=NA_real_,condition_number=NA_real_,
     standardize=prepared$standardize,grid_n=length(prepared$grid),
@@ -136,7 +133,7 @@ revised_cqr_fit <- function(prepared, weights, coefficient_names=NULL,
   }
   warn <- character()
   z <- tryCatch(withCallingHandlers(
-    revised_pen_native(X,y,event,weights[take]/weight_constant,prepared$grid),
+    ph_native_unchecked(X,y,event,weights[take]/weight_constant,prepared$grid),
     warning=function(w){warn<<-c(warn,conditionMessage(w));invokeRestart("muffleWarning")}),
     error=function(e)e)
   dg$warnings <- paste(unique(warn),collapse=" | ")
@@ -146,7 +143,7 @@ revised_cqr_fit <- function(prepared, weights, coefficient_names=NULL,
     dg$failure_class <- if(z$native_info>0)"native_cholesky_failure_no_solution" else "no_solution"
     return(finish(z))
   }
-  beta <- revised_cqr_backtransform(prepared,z$beta)
+  beta <- cqr_backtransform(prepared,z$beta)
   finite <- colSums(!is.finite(beta))==0L
   dg$tau_max <- max(z$tau)
   if (any(finite)) dg$last_finite_tau <- max(z$tau[finite])

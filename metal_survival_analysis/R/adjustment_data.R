@@ -25,7 +25,7 @@ covariates <- inherited %>%
       DMDMARTL == 5 ~ "never_married", TRUE ~ NA_character_),
       levels=levels(inherited$marital_3cat)))
 
-baseline_directory <- file.path(PROJECT_ROOT, "replication_through_2014/manuscript_audit/raw_baseline_covariate_check")
+baseline_directory <- file.path(INPUT_DIR, "baseline")
 baseline_files <- file.path(baseline_directory, c("L40_B.xpt", "BMX_B.xpt", "L13_B.xpt"))
 serum <- read_native(baseline_files[1])
 bmi <- read_native(baseline_files[2])
@@ -43,8 +43,8 @@ covariates$egfr_ckdepi_2021 <- 142 * pmin(covariates$LBXSCR_cal/kappa, 1)^alpha 
   ifelse(female, 1.012, 1)
 
 # Correct one false fish-screener zero using the native refusal code.
-# Retain audited fish totals and missingness; the original food-code map is unavailable.
-fish_files <- file.path(PROJECT_ROOT, "replication_through_2014/manuscript_audit/raw_fish_zero_check",
+# Retain supplied fish totals and missingness; the original food-code map is unavailable.
+fish_files <- file.path(INPUT_DIR, "diet",
                         c("DRXTOT_B.xpt", paste0("DR1TOT_", LETTERS[3:8], ".xpt")))
 covariates$fish_detail_refusal_code_native <- NA_real_
 for (k in seq_along(fish_files)) {
@@ -63,14 +63,4 @@ covariates$fish_source[refused] <- "missing"
 covariates <- droplevels(covariates)
 saveRDS(covariates, data_file("covariates.rds"))
 saveRDS(demographics, data_file("demographics.rds"))
-record_input_sources(c(inherited_file, demo_files, baseline_files, fish_files), "03_covariates")
-writeLines(c(
-  "Reconstruction starts with the retained, pre-correction 1999–2018 analytic archive. Its population-wide screening builder is unavailable; no new claim of a full raw-NHANES cohort is made.",
-  "Native DEMO restores age, sex, race, education, marital status, PIR and design identifiers; factors are rebuilt with the stored reference levels.",
-  "Native 2001–2002 baseline serum creatinine, BMI and cholesterol are read directly. Other cycles retain supplied baseline BMI/cholesterol/calibrated serum creatinine. Race-free CKD-EPI 2021 eGFR is recalculated.",
-  "Pack-years, alcohol, physical-activity categories and fish recall gram totals are inherited with their original missingness. The original questionnaire harmonization, MET builder and food-code lookup are unavailable.",
-  "Fish keeps the stored screener-first/recall-second hierarchy and the exact /4.345 and /85*7 conversions. Native DRD370V invalidates the documented species-detail refusal. Observed zeros are not automatically reclassified as missing.",
-  "EPA+DHA sensitivity fields DRXTP205 and DRXTP226 retain inherited recall-day selection; their original day-selection builder is unavailable.",
-  "The old corrected analytic dataset is read only by stage 04 for validation. It supplies no rebuilt analysis values."
-), audit_file("INHERITED_VARIABLES.md"))
 message("Covariate reconstruction complete: ", nrow(covariates), " retained archive rows.")

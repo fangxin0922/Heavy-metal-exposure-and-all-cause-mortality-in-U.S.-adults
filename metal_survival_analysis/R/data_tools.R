@@ -1,9 +1,9 @@
-# Input readers, source hashes and value checks.
-raw_directory <- file.path(PROJECT_ROOT, "replication_10_24/revised/raw")
-inherited_file <- file.path(PROJECT_ROOT, "replication_10_24/revised/data/analytic_revised.rds")
+# Input readers and numerical checks.
+raw_directory <- file.path(INPUT_DIR, "raw")
+inherited_file <- file.path(INPUT_DIR, "analytic.rds")
 metal_names <- c("LBXBPB", "LBXTHG", "URXUCD", "VNSUMARS")
 data_file <- function(name) file.path(RUN_DIR, "data", name)
-audit_file <- function(name) file.path(RUN_DIR, "audit", name)
+diagnostic_file <- function(name) file.path(RUN_DIR, "diagnostics", name)
 
 read_native <- function(path) {
   stopifnot(file.exists(path))
@@ -24,12 +24,6 @@ safe_log2 <- function(x) {
   observed <- is.finite(x) & x > 0
   answer[observed] <- log2(x[observed])
   answer
-}
-
-record_input_sources <- function(paths, stage) {
-  paths <- unique(normalizePath(paths, mustWork=TRUE))
-  write.csv(data.frame(path=paths, md5=unname(tools::md5sum(paths))),
-            audit_file(paste0(stage, "_source_hashes.csv")), row.names=FALSE)
 }
 
 compare_column <- function(a, b, variable, tolerance=1e-10) {

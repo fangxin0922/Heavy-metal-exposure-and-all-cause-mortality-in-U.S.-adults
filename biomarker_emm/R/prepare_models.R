@@ -1,18 +1,15 @@
 # Prepare complete-case biomarker CQR models and survey replicate weights.
 
-source("replication_through_2014/remote_execution/R/runtime.R")
+source("biomarker_emm/R/settings.R")
 suppressPackageStartupMessages({
   library(tidyverse)
   library(survival)
   library(survey)
   library(quantreg)
 })
-source("replication_through_2014/R/revised_cqr_solver.R")
+source("biomarker_emm/R/quantile_solver.R")
 
-BASE_DIR <- "nutrient_biomarker_emm_run_2026-11-02"
-OUTPUT_DIR <- file.path(BASE_DIR, "project_style_v3")
 KAPPA <- 2
-PARENT_DIR <- "replication_through_2014/remote_execution/models"
 SCENARIOS <- c(Pb = "primary_Pb", Hg = "primary_Hg", Cd = "egfr60_Cd", As = "egfr60_As")
 BIOMARKERS <- c("vitamin_c", "alpha_carotene", "rbc_folate")
 TAUS <- c(.10, .25, .50)
@@ -56,7 +53,7 @@ for (metal in names(SCENARIOS)) {
     formula <- as.formula(paste("survival::Surv(followup_yrs, event) ~",
       "metal_log2 * biomarker_iqr + RIDAGEYR + I(RIDAGEYR^2) +",
       paste(setdiff(covariates, "RIDAGEYR"), collapse = " + ")))
-    prepared <- revised_cqr_prepare(formula, d, taus = TAUS, standardize = TRUE)
+    prepared <- cqr_prepare(formula, d, taus = TAUS, standardize = TRUE)
     stopifnot(prepared$matrix_rank == prepared$p, all(TERMS %in% prepared$coefficient_names))
 
     # Preserve full-component PSU draws, then select the biomarker/CC domain.
@@ -81,7 +78,7 @@ for (metal in names(SCENARIOS)) {
       rank_df = rank_df, psu_strata_df = psu_strata_df,
       parent_bank = parent_path, full_component_n = length(bank$full_row_ids))
 
-    # Preserve the documented kappa=2 bootstrap amendment and its arithmetic order.
+    # Positive rescaling keeps all bootstrap weights above zero.
     # This preserves linear-total variance, not exact nonlinear CQR variance.
     original_weights <- rp$analysis_weights
     original_scale <- rp$scale
@@ -120,9 +117,9 @@ for (metal in names(SCENARIOS)) {
       biomarker_low = levels[1], biomarker_high = levels[2], taus = TAUS,
       primary_tau = .10, weight_constant = mean(d$analysis_weight),
       source_hashes = tools::md5sum(c(input_path, parent_path,
-        file.path(OUTPUT_DIR, "R", "02_prepare_cqr_models.R"),
-        "replication_through_2014/R/revised_cqr_solver.R")),
-      inference_amendment = "Fixed kappa=2 positive rescaled Rao-Wu bootstrap, adopted after numerical failure diagnostics; original model unchanged",
+        "biomarker_emm/R/prepare_models.R",
+        "biomarker_emm/R/quantile_solver.R")),
+      inference_method = "Fixed kappa=2 positive rescaled Rao-Wu bootstrap",
       missing_data = "Complete cases; no imputation; separate sample for each biomarker and metal",
       contrast = "Fixed weighted P25 to P75 from the complete-case sample",
       df_rule = "Minimum of domain replicate-weight rank minus one and represented PSUs minus strata")
@@ -137,4 +134,3 @@ for (metal in names(SCENARIOS)) {
   }
 }
 write.csv(do.call(rbind, rows), file.path(OUTPUT_DIR, "aggregate", "model_preparation.csv"), row.names = FALSE)
-writeLines(capture.output(sessionInfo()), file.path(OUTPUT_DIR, "aggregate", "preparation_session.txt"))

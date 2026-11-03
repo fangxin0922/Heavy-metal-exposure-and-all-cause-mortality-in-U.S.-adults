@@ -1,19 +1,11 @@
 # Prepare serum and RBC biomarker cohorts for the CQR interaction analysis.
-# Participant-level outputs remain on the analysis server; this script fits no models.
 
-source("replication_through_2014/remote_execution/R/runtime.R")
+source("biomarker_emm/R/settings.R")
 suppressPackageStartupMessages({
   library(haven)
   library(tidyverse)
 })
 
-BASE_DIR <- "nutrient_biomarker_emm_run_2026-11-02"
-OUTPUT_DIR <- file.path(BASE_DIR, "project_style_v3")
-PARENT_DIR <- "replication_through_2014/remote_execution/models"
-INPUT_FILE <- "replication_through_2014/manuscript_completion/data/analytic_corrected.rds"
-LAB_DIR <- "replication_10_24/revised/raw"
-MARKER_DIR <- "nutrient_biomarker_feasibility_2026-11-02/raw"
-SUPPORT_DIR <- file.path(BASE_DIR, "raw")
 stopifnot(Sys.info()[["sysname"]] == "Linux")
 dir.create(file.path(OUTPUT_DIR, "data"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(OUTPUT_DIR, "validation"), showWarnings = FALSE)
@@ -21,7 +13,6 @@ dir.create(file.path(OUTPUT_DIR, "validation"), showWarnings = FALSE)
 SCENARIOS <- c(Pb = "primary_Pb", Hg = "primary_Hg", Cd = "egfr60_Cd", As = "egfr60_As")
 METALS <- c(Pb = "LBXBPB", Hg = "LBXTHG", Cd = "URXUCD", As = "VNSUMARS")
 UNITS <- c(vitamin_c = "mg/dL", alpha_carotene = "ug/dL", rbc_folate = "nmol/L")
-sources <- INPUT_FILE
 source_labels <- list()
 
 # Biomarker files and published assay bridges ----
@@ -42,7 +33,6 @@ CBC_FILES <- c("LAB25", "L25_B", "L25_C", "CBC_D")
 read_native <- function(path, fields, cycle) {
   x <- read_xpt(path)
   stopifnot(!anyDuplicated(x$SEQN), all(fields %in% names(x)))
-  sources <<- c(sources, path)
   for (field in fields) {
     source_labels[[length(source_labels) + 1L]] <<- data.frame(
       file = basename(path), cycle, variable = field,
@@ -169,7 +159,6 @@ for (metal in names(SCENARIOS)) {
   if (metal %in% c("Cd", "As")) stopifnot(all(parent$egfr_ckdepi_2021 >= 60))
   parent$parent_sampling_weight <- as.numeric(bank$sampling_weights)
   parent$metal_log2 <- parent[[paste0("log_primary_", METALS[[metal]])]]
-  sources <- c(sources, spec_file, bank_file)
 
   for (biomarker in names(UNITS)) {
     marker_cycles <- registry$cycle[registry$biomarker == biomarker]
@@ -249,14 +238,10 @@ for (metal in names(SCENARIOS)) {
   }
 }
 
-# Aggregate audit outputs ----
+# Cohort and calibration checks ----
 
 write.csv(registry, file.path(OUTPUT_DIR, "biomarker_registry.csv"), row.names = FALSE)
 write.csv(calibration_checks, file.path(OUTPUT_DIR, "validation", "calibration_example_checks.csv"), row.names = FALSE)
 for (item in c("flow", "by_cycle", "missingness", "weight_checks", "pair_registry", "calibration_summary", "source_labels")) {
   write.csv(do.call(rbind, get(item)), file.path(OUTPUT_DIR, "validation", paste0(item, ".csv")), row.names = FALSE)
 }
-hashes <- tools::md5sum(unique(c(sources, file.path(OUTPUT_DIR, "R", "01_prepare_biomarkers.R"))))
-write.csv(data.frame(file = names(hashes), md5 = unname(hashes)),
-          file.path(OUTPUT_DIR, "validation", "input_source_hashes.csv"), row.names = FALSE)
-writeLines(capture.output(sessionInfo()), file.path(OUTPUT_DIR, "validation", "input_session_info.txt"))

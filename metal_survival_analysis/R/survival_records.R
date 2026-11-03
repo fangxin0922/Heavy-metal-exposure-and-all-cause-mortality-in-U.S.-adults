@@ -20,5 +20,4 @@ mortality <- lapply(seq_along(files), function(cycle) {
   dplyr::mutate(event=MORTSTAT, followup_yrs=PERMTH_EXM/12)
 stopifnot(!anyDuplicated(mortality$SEQN), all(mortality$ELIGSTAT %in% 1:3))
 saveRDS(mortality, data_file("mortality.rds"))
-record_input_sources(files, "02_mortality")
 message("Mortality reconstruction complete: ", nrow(mortality), " public records.")

@@ -30,7 +30,7 @@ model_covariates <- function(metal, panel) {
   variables
 }
 
-# Keep the historical CQR spline basis for comparison.
+# Restricted cubic splines use four exposure knots.
 # Cox shape checks use a separate penalized spline.
 restricted_cubic_basis <- function(x, knots) {
   stopifnot(length(knots) == 4L, all(diff(knots) > 0))

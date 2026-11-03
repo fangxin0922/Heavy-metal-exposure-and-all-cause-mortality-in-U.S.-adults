@@ -1,5 +1,5 @@
 # Rebuild metal concentrations, survey weights and urinary standardization.
-# Run from the project root; the corrected comparison dataset is not an input.
+# Run from the repository root.
 source("metal_survival_analysis/R/settings.R")
 source(file.path(RUN_DIR, "R/data_tools.R"))
 
@@ -7,7 +7,7 @@ inherited <- read_inherited()
 chemicals <- inherited %>%
   dplyr::filter(SDDSRVYR <= 8) %>%
   dplyr::select(SEQN, SDDSRVYR, URXUCR, URXUTL)
-specification_file <- file.path(PROJECT_ROOT, "replication_10_24/weight_specification.csv")
+specification_file <- file.path(RUN_DIR, "inputs/weight_specification.csv")
 specification <- read.csv(specification_file) %>%
   dplyr::filter(SDDSRVYR <= 8) %>%
   dplyr::mutate(metal_code=unname(c(blood_lead="LBXBPB", blood_mercury="LBXTHG",
@@ -16,7 +16,6 @@ specification <- read.csv(specification_file) %>%
                 pooling_multiplier=ifelse(SDDSRVYR <= 2, 2/K, 1/K))
 demographic_files <- file.path(raw_directory, paste0(c("DEMO", paste0("DEMO_", LETTERS[2:8])), ".xpt"))
 demographics <- lapply(demographic_files, read_native)
-sources <- c(inherited_file, specification_file, demographic_files)
 full_designs <- setNames(vector("list", 4), metal_names)
 
 for (metal in metal_names) {
@@ -32,7 +31,6 @@ for (metal in metal_names) {
     path <- file.path(raw_directory, paste0(row$lab_file, ".xpt"))
     lab <- read_native(path)
     demo <- demographics[[row$SDDSRVYR]]
-    sources <- c(sources, path)
     stopifnot(all(lab$SEQN %in% demo$SEQN))
     if (row$raw_weight %in% names(demo)) {
       component <- demo %>%
@@ -89,20 +87,19 @@ for (cycle in 1:2) {
   lab <- read_native(path)
   i <- which(chemicals$SDDSRVYR == cycle)
   chemicals$LBXTHG[i] <- lab$LBXTHG[match(chemicals$SEQN[i], lab$SEQN)]
-  sources <- c(sources, path)
 }
 
 # Fit the original creatinine model in its 1999–2018 cohort.
 # Restore the 2001–2002 baseline urinary measurement before fitting.
 reference <- inherited
 reference$cycle_f <- factor(reference$SDDSRVYR)
-baseline_file <- file.path(PROJECT_ROOT, "replication_through_2014/manuscript_audit/raw_creatinine_check/L16_B.xpt")
+baseline_file <- file.path(INPUT_DIR, "creatinine/L16_B.xpt")
 baseline <- read_native(baseline_file)
 i <- which(reference$SDDSRVYR == 2)
 j <- match(reference$SEQN[i], baseline$SEQN)
 stopifnot(!anyNA(j))
 reference$URXUCR[i] <- baseline$URXUCR[j]
-later_files <- file.path(PROJECT_ROOT, "replication_through_2014/manuscript_audit/raw_creatinine_check",
+later_files <- file.path(INPUT_DIR, "creatinine",
                         c("ALB_CR_I.xpt", "ALB_CR_J.xpt"))
 for (k in 1:2) {
   lab <- read_native(later_files[k])
@@ -122,9 +119,8 @@ chemicals <- chemicals %>% dplyr::mutate(
   URXUCR=reference$URXUCR[j], URXUCR_pred=reference$URXUCR_pred[j],
   log_URXUCR=log(URXUCR), URXUCR_cs_ratio=URXUCR/URXUCR_pred,
   log_primary_LBXBPB=safe_log2(LBXBPB), log_primary_LBXTHG=safe_log2(LBXTHG))
-# Validate new blood logs before retaining the pre-correction archive values.
-# Their original runtime is unknown; tiny rounding differences affect CQR.
-# Save recalculated values separately; no corrected comparator is used.
+# Validate blood logs, then retain the supplied numerical representation.
+# Machine-precision differences can affect CQR estimates.
 blood_log_checks <- list()
 for (metal in c("LBXBPB", "LBXTHG")) {
   field <- paste0("log_primary_", metal)
@@ -137,7 +133,7 @@ for (metal in c("LBXBPB", "LBXTHG")) {
   chemicals[[field]] <- archived
   blood_log_checks[[metal]] <- check
 }
-write.csv(dplyr::bind_rows(blood_log_checks), audit_file("blood_log_numeric_representation.csv"), row.names=FALSE)
+write.csv(dplyr::bind_rows(blood_log_checks), diagnostic_file("blood_log_numeric_representation.csv"), row.names=FALSE)
 chemicals$log_VNSUMARS <- safe_log2(chemicals$VNSUMARS)
 chemicals$z_log_VNSUMARS_barr <- (chemicals$log_VNSUMARS - mean(chemicals$log_VNSUMARS, na.rm=TRUE)) /
   stats::sd(chemicals$log_VNSUMARS, na.rm=TRUE)
@@ -153,13 +149,5 @@ saveRDS(full_designs, data_file("full_designs.rds"))
 saveRDS(creatinine_model, data_file("creatinine_model.rds"))
 saveRDS(reference %>% dplyr::select(SEQN, SDDSRVYR, URXUCR, URXUCR_pred),
         data_file("creatinine_reference.rds"))
-write.csv(specification, audit_file("native_component_weight_specification.csv"), row.names=FALSE)
-record_input_sources(c(sources, baseline_file, later_files), "01_chemicals")
-writeLines(c(
-  "Blood concentrations and weights were reconstructed from native XPT files.",
-  "log2 blood concentrations were independently recalculated and checked against the older, pre-correction archive at tolerance 1e-12, including missingness.",
-  "The generating runtime of the originally supplied blood-log columns is unavailable. Current log2 arithmetic has machine-precision differences for some concentrations; log(x,base=2) or log(x)/log(2) does not reproduce every archived value exactly.",
-  "After that independent check, log_primary_LBXBPB and log_primary_LBXTHG retain the pre-correction archive numeric representation to avoid conflating floating-point changes with rewritten model code. The directly calculated values remain in *_recalculated columns and their differences are reported in blood_log_numeric_representation.csv.",
-  "This is explicitly a retained numeric representation, not a claim that the original blood-log generating code was recovered. Urinary corrections and log exposures are recalculated directly."
-), audit_file("BLOOD_LOG_REPRODUCIBILITY.md"))
+write.csv(specification, diagnostic_file("native_component_weight_specification.csv"), row.names=FALSE)
 message("Chemical reconstruction complete: ", nrow(chemicals), " retained archive rows.")

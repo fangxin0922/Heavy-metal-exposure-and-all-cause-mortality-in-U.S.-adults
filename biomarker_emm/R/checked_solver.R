@@ -1,16 +1,14 @@
-# Linux-only PH adapter. Native calculations are unchanged; the accepted path
-# stops before the first invalid LP step. Mac source/checkpoints remain immutable.
-completion_ph_validation_policy<-function()list(
- version='checked-ph-lp-1',relative_feasibility=1e-7,bound_sum_tolerance=1e-7,
+# Accept only the valid prefix of the native Peng-Huang path.
+
+ph_validation_policy<-function()list(
+ relative_feasibility=1e-7,bound_sum_tolerance=1e-7,
  relative_objective_gap=1e-7,minimum_slack=0,
  gap='absolute complementarity gap <= native epsilon at every accepted step',
  iteration_limit='500 accepted only when native gap criterion is satisfied',
  prefix='stop before first invalid step; no later re-entry or extrapolation')
-completion_ph_native_files<-function()file.path(
- 'replication_through_2014/remote_execution/validation/instrumented_ph',
- c('src/ph_diagnostic.f','src/ph_diagnostic.so','src/crqfnb_original.f',
-   'src/rqfnb_original.f','build_instrumentation.py','source_hashes.json'))
-completion_ph_fields<-function()c('iterations','corrector_iterations','lp_n',
+ph_native_files<-function()file.path(
+ 'biomarker_emm/native', c('ph_diagnostic.f','ph_diagnostic.so'))
+ph_fields<-function()c('iterations','corrector_iterations','lp_n',
  'cholesky_info','exit_phase','complementarity_gap','maxit_with_positive_gap',
  'primal_inf','primal_relative','dual_inf','dual_relative','minimum_primal_slack',
  'minimum_dual_slack','bound_sum_error','max_complementarity_product',
@@ -20,14 +18,14 @@ completion_ph_fields<-function()c('iterations','corrector_iterations','lp_n',
  'residual_nonnegative_count','residual_exact_zero_count','residual_near_zero_1e10_count',
  'minimum_relative_residual','residual_index_checksum','residual_absolute_sum',
  'residual_near_zero_1e8_count','nonfinite_primal_dual_state_count')
-completion_ph_library<-function() {
- path<-normalizePath(completion_ph_native_files()[2L],mustWork=TRUE)
+ph_library<-function() {
+ path<-normalizePath(ph_native_files()[2L],mustWork=TRUE)
  loaded<-getLoadedDLLs()
  hits<-which(vapply(loaded,function(x)identical(normalizePath(x[['path']],mustWork=FALSE),path),logical(1)))
  if(length(hits))loaded[[hits[1L]]]else dyn.load(path)
 }
-completion_ph_native<-function(x,y,cen,weights,grid) {
- dll<-completion_ph_library();fields<-completion_ph_fields()
+ph_native<-function(x,y,cen,weights,grid) {
+ dll<-ph_library();fields<-ph_fields()
  p<-ncol(x);n<-length(y);m<-length(grid)
  x<-x*weights;y<-y*weights;cc<-as.logical(cen)
  x1<-x[cc,,drop=FALSE];y1<-y[cc];n1<-length(y1)
@@ -43,9 +41,9 @@ completion_ph_native<-function(x,y,cen,weights,grid) {
  list(beta=B,tau=grid[seq_len(J)],native_info=z$info,native_m=z$m,
    trace=trace[,calls,drop=FALSE],trace_grid_index=calls,trace_tau=grid[calls])
 }
-completion_ph_validate_native<-function(z,policy=completion_ph_validation_policy()) {
- stopifnot(identical(policy,completion_ph_validation_policy()),is.matrix(z$trace),
-   identical(rownames(z$trace),completion_ph_fields()),
+ph_validate_native<-function(z,policy=ph_validation_policy()) {
+ stopifnot(identical(policy,ph_validation_policy()),is.matrix(z$trace),
+   identical(rownames(z$trace),ph_fields()),
    ncol(z$trace)==length(z$trace_grid_index),length(z$trace_tau)==ncol(z$trace),
    identical(z$trace_grid_index,seq_len(ncol(z$trace))),ncol(z$beta)==length(z$tau),
    ncol(z$trace)>=ncol(z$beta))
@@ -82,24 +80,22 @@ completion_ph_validate_native<-function(z,policy=completion_ph_validation_policy
    first_invalid_reason=if(is.na(bad))'none'else reason[bad],
    accepted_steps=accepted,returned_steps=ncol(z$beta),truncated=accepted<ncol(z$beta),policy=policy)
 }
-completion_checked_ph_fit<-function(prepared,weights,coefficient_names=NULL,
+checked_ph_fit<-function(prepared,weights,coefficient_names=NULL,
                                     weight_constant=NULL,keep_path=FALSE) {
  state<-new.env(parent=emptyenv())
  checked_native<-function(x,y,cen,weights,grid) {
-   z<-completion_ph_native(x,y,cen,weights,grid)
-   checked<-completion_ph_validate_native(z)
+   z<-ph_native(x,y,cen,weights,grid)
+   checked<-ph_validate_native(z)
    state$raw<-z;state$check<-checked
    take<-seq_len(checked$accepted_steps)
    list(beta=z$beta[,take,drop=FALSE],tau=z$tau[take],
      native_info=z$native_info,native_m=z$native_m)
  }
- # Copy only the function's environment, preserving its exact calculations and
- # original input/rank checks. The globally frozen native function is untouched.
- fn<-revised_cqr_fit;private<-new.env(parent=environment(fn))
- private$revised_pen_native<-checked_native;environment(fn)<-private
+ # Inject the checked native call while preserving the input and rank checks.
+ fn<-cqr_fit;private<-new.env(parent=environment(fn))
+ private$ph_native_unchecked<-checked_native;environment(fn)<-private
  ans<-fn(prepared,weights,coefficient_names,weight_constant,keep_path)
- ans$diagnostics$solver_version<-'checked-pen-lp-1.0'
- ans$diagnostics$lp_validation_policy<-completion_ph_validation_policy()
+ ans$diagnostics$lp_validation_policy<-ph_validation_policy()
  if(exists('check',envir=state,inherits=FALSE)) {
    ck<-state$check;tr<-state$raw$trace
    ans$diagnostics$lp_steps_checked<-ncol(tr)
@@ -126,7 +122,7 @@ completion_checked_ph_fit<-function(prepared,weights,coefficient_names=NULL,
      ans$validation_trace<-data.frame(grid_index=state$raw$trace_grid_index,
        tau=state$raw$trace_tau,t(tr),validation_reason=ck$reason,check.names=FALSE)
      if(ck$truncated)ans$unchecked_native_path<-list(tau=state$raw$tau,
-       coefficients=revised_cqr_backtransform(prepared,state$raw$beta),
+       coefficients=cqr_backtransform(prepared,state$raw$beta),
        native_info=state$raw$native_info)
    }
  }else {
