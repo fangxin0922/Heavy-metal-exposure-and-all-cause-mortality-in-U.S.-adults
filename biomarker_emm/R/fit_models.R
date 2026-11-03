@@ -1,4 +1,4 @@
-# Fit original or survey-replicate CQR models without package summary().
+# Fit full-sample or survey-replicate CQR models without package summary().
 
 source("biomarker_emm/R/settings.R")
 suppressPackageStartupMessages({
@@ -42,8 +42,8 @@ if (any(replicates > 0)) {
   original_hash <- tools::md5sum(original_path)
 }
 
-# Original fit is replicate 0; each remaining ID retains its saved PSU draw.
-# This uses the native checked implementation, whose numerical limits remain.
+# Replicate 0 fits the full sample; each other ID uses its fixed PSU draw.
+# Validate each native solution against the numerical acceptance criteria.
 
 for (b in replicates) {
   path <- file.path(dest, "fits", sprintf("rep%03d.rds", b))

@@ -34,7 +34,7 @@ make_completed_design <- function(full, completed, specification) {
   matched <- match(completed$SEQN, full$SEQN)
   stopifnot(all(full$w_metal[matched] > 0))
   for (variable in overlap) {
-    # Use original design weights; fitting weights may have been rescaled.
+    # Use sampling weights from the survey design before fitting-weight rescaling.
     if (variable != "w_metal") {
       stopifnot(isTRUE(all.equal(as.vector(completed[[variable]]),
                                 as.vector(full[[variable]][matched]),

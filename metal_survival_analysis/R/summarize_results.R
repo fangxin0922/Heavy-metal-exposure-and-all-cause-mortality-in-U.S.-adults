@@ -1,4 +1,4 @@
-# Combine current CQR results without pooling imputations.
+# Combine CQR results without pooling imputations.
 source("metal_survival_analysis/R/model_catalog.R")
 args <- commandArgs(trailingOnly = TRUE)
 scenarios <- if (length(args)) args else SCENARIOS$scenario

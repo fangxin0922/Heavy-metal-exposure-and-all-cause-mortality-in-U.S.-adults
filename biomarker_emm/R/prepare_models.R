@@ -57,7 +57,7 @@ for (metal in names(SCENARIOS)) {
     stopifnot(prepared$matrix_rank == prepared$p, all(TERMS %in% prepared$coefficient_names))
 
     # Preserve full-component PSU draws, then select the biomarker/CC domain.
-    # New native weights are needed for alpha-carotene's 2001-start window.
+    # Use native survey weights for the biomarker measurement window.
     j <- match(d$SEQN, bank$row_ids)
     stopifnot(!anyNA(j))
     multipliers <- bank$analysis_weights[j, , drop = FALSE] / as.numeric(bank$sampling_weights[j])

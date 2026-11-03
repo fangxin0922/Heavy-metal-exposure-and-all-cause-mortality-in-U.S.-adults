@@ -1,4 +1,4 @@
-# Read public 2019 mortality records using the CDC field positions.
+# Read public linked-mortality records using the CDC field positions.
 source("metal_survival_analysis/R/settings.R")
 source(file.path(RUN_DIR, "R/data_tools.R"))
 

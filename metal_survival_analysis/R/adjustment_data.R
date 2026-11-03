@@ -1,5 +1,5 @@
-# Rebuild available covariates from native files. Retain inherited questionnaire
-# and dietary fields, including missingness, where original builders are unavailable.
+# Build covariates from native files and the supplied study frame.
+# Questionnaire and dietary variables retain the supplied values and missingness.
 source("metal_survival_analysis/R/settings.R")
 source(file.path(RUN_DIR, "R/data_tools.R"))
 
@@ -43,7 +43,7 @@ covariates$egfr_ckdepi_2021 <- 142 * pmin(covariates$LBXSCR_cal/kappa, 1)^alpha 
   ifelse(female, 1.012, 1)
 
 # Correct one false fish-screener zero using the native refusal code.
-# Retain supplied fish totals and missingness; the original food-code map is unavailable.
+# Use supplied fish totals and preserve their missingness.
 fish_files <- file.path(INPUT_DIR, "diet",
                         c("DRXTOT_B.xpt", paste0("DR1TOT_", LETTERS[3:8], ".xpt")))
 covariates$fish_detail_refusal_code_native <- NA_real_

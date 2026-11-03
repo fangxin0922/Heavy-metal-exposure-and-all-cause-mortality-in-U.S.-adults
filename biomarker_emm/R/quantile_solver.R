@@ -55,7 +55,7 @@ cqr_prepare <- function(formula, data, grid=NULL,
 }
 
 ph_native_unchecked <- function(x,y,cen,weights,grid) {
-  # Source-equivalent call, with information retained rather than discarded.
+  # Call the native quantreg solver and retain its status information.
   loadNamespace("quantreg")
   p <- ncol(x); n <- length(y); m <- length(grid)
   x <- x*weights; y <- y*weights

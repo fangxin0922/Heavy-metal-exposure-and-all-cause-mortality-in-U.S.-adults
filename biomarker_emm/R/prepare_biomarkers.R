@@ -42,7 +42,7 @@ read_native <- function(path, fields, cycle) {
 }
 
 adjust_folate <- function(rbc, serum, hct) {
-  # CDC FOLATE_F: Bio-Rad 1999-2006 -> microbiologic-assay equivalent.
+  # Convert Bio-Rad folate measurements to the CDC microbiologic-assay scale.
   # Serum must exceed 1 nmol/L so log10(serum)^(-1/2) is defined.
   valid <- is.finite(rbc) & rbc > 0 & is.finite(serum) & serum > 1 &
     is.finite(hct) & hct > 0 & hct < 100
@@ -103,7 +103,7 @@ for (i in seq_len(nrow(registry))) {
     marker$calibration_method <- "CDC four-step Bio-Rad to microbiologic-assay equivalent"
   }
   if (item$biomarker == "rbc_folate" && item$cycle == 7) {
-    marker$calibration_method <- "released LBDRFOSI; February 2019 CDC revision already applied"
+    marker$calibration_method <- "Released LBDRFOSI; use without an additional assay correction"
   }
   marker$calibration_valid <- marker$calibration_valid & is.finite(marker$biomarker_value) &
     marker$biomarker_value > 0 & is.finite(marker$biomarker_raw) & marker$biomarker_raw > 0
@@ -140,7 +140,7 @@ for (cycle in 2:4) {
   }
 }
 
-# Restore observed parent records; require only analysis-variable completeness ----
+# Select observed study records and require complete analysis variables ----
 
 archive <- readRDS(INPUT_FILE)
 stopifnot(!anyDuplicated(archive$SEQN))
@@ -226,7 +226,7 @@ for (metal in names(SCENARIOS)) {
       complete_case_variables = complete_case_variables, metal = metal, biomarker = biomarker,
       units = UNITS[[biomarker]], parent_scenario = SCENARIOS[[metal]], cycles = cycles,
       calibration = registry[registry$biomarker == biomarker & registry$cycle %in% cycles, ],
-      calibration_note = if (biomarker == "rbc_folate") "1999-2006 calibrated with observed serum folate and hematocrit; 2011-2012 revised release used once" else if (biomarker == "alpha_carotene") "2003-2004 Craft values mapped to CDC scale with combined Deming equation" else "Released serum vitamin C mg/dL",
+      calibration_note = if (biomarker == "rbc_folate") "Bio-Rad values calibrated with observed serum folate and hematocrit; released LBDRFOSI used without an additional assay correction" else if (biomarker == "alpha_carotene") "Craft assay values mapped to the CDC scale with the combined Deming equation" else "Released serum vitamin C mg/dL",
       missing_data_method = "tidyr::drop_na on explicit analysis variables; no imputation",
       parent_variance_metadata = bank[c("scale", "rscales", "mse", "R", "seed", "complete_data_df", "df_method")])
     filename <- paste0(metal, "_", biomarker, ".rds")

@@ -32,7 +32,7 @@ component <- full_designs[[scenario$design_metal]]
 index <- match(analysis$SEQN, component$SEQN)
 stopifnot(!anyNA(index), !anyDuplicated(component$SEQN))
 analysis$w_metal <- component$w_metal[index]
-# Keep the supplied Pb weights at their original precision.
+# Preserve the numerical precision of the supplied Pb weights.
 if (metal == "LBXBPB" && scenario$panel %in% c("primary", "portnoy")) {
   analysis$w_metal <- analysis$weight_LBXBPB
 }

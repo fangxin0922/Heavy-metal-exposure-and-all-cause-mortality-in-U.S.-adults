@@ -80,8 +80,7 @@ for (metal in metal_names) {
   stopifnot(!anyDuplicated(full_designs[[metal]]$SEQN))
 }
 
-# Retain early mercury for descriptions only. Models start in 2003
-# because the earlier laboratory sample had different coverage.
+# Restrict mercury models to cycles with comparable laboratory coverage.
 for (cycle in 1:2) {
   path <- file.path(raw_directory, paste0(c("LAB06", "L06_B")[cycle], ".xpt"))
   lab <- read_native(path)
@@ -89,8 +88,8 @@ for (cycle in 1:2) {
   chemicals$LBXTHG[i] <- lab$LBXTHG[match(chemicals$SEQN[i], lab$SEQN)]
 }
 
-# Fit the original creatinine model in its 1999–2018 cohort.
-# Restore the 2001–2002 baseline urinary measurement before fitting.
+# Fit creatinine standardization in the full reference cohort.
+# Use the native baseline urinary measurement for cycle 2.
 reference <- inherited
 reference$cycle_f <- factor(reference$SDDSRVYR)
 baseline_file <- file.path(INPUT_DIR, "creatinine/L16_B.xpt")

@@ -13,7 +13,7 @@ N_PRIMARY_TESTS <- 12L
 TERMS <- c("metal_log2", "biomarker_iqr", "metal_log2:biomarker_iqr")
 dir.create(file.path(OUTPUT_DIR, "aggregate"), showWarnings = FALSE)
 
-# Contrasts on the existing survival-time scale ----
+# Contrasts on the survival-time scale ----
 
 biomarker_contrasts <- function(coefficients) {
   c(metal_low = unname(coefficients["metal_log2"]),
@@ -130,7 +130,7 @@ results$q_primary[tested] <- p.adjust(results$p_value[tested], "BH", n = N_PRIMA
 
 path_file <- "biomarker_emm/inputs/solver_checks.csv"
 path_checks <- read.csv(path_file)
-# The probe examined one successful replicate per pair, not every saved fit.
+# Solver-control classifications cover one successful replicate per pair.
 control_checks <- path_checks %>% filter(kind == "successful_control") %>%
   group_by(pair) %>%
   summarise(successful_control_matches = sum(control_equivalence %in% c("True", "TRUE")),
