@@ -1,6 +1,6 @@
 # Heavy-metal exposure and all-cause mortality in U.S. adults
 
-Analysis code for NHANES heavy-metal exposure and conditional survival time, with a separate nutrient-biomarker effect-measure modification (EMM) analysis. This source release contains the revised main pipeline and the scripts used for the latest completed EMM run on November 3, 2026.
+Analysis code for NHANES heavy-metal exposure and conditional survival time, with a separate nutrient-biomarker effect-measure modification (EMM) analysis. 
 
 ## Analysis scripts
 
