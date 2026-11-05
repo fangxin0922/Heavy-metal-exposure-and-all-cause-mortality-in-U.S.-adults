@@ -16,7 +16,26 @@ SCENARIOS <- bind_rows(lapply(names(PANELS), function(panel) {
          first_cycle = if_else(label %in% c("Hg", "As"), 3L, 1L),
          period = if_else(first_cycle == 3L, "2003-2014", "1999-2014"),
          method = if_else(panel == "portnoy", "Portnoy", "PengHuang"),
-         primary = scenario %in% PRIMARY)
+         primary = scenario %in% PRIMARY,
+         previous_scenario = scenario,
+         require_egfr60 = panel == "egfr60" | panel == "joint" |
+           (label %in% c("Cd", "As") & panel %in% c("portnoy", "age55plus", "no_bmi")),
+         scenario = if_else(require_egfr60 & panel != "egfr60",
+                            paste(panel, "egfr60", label, sep = "_"), scenario))
+
+# Select observed eligibility before any covariate imputation.
+select_analysis_cohort <- function(input, scenario) {
+  domain_metal <- if (scenario$panel == "joint") "URXUCD" else scenario$metal
+  analysis <- input %>% filter(.data[[paste0("domain_", domain_metal)]])
+  if (scenario$panel == "age55plus") analysis <- analysis %>% filter(RIDAGEYR >= 55)
+  if (scenario$require_egfr60) {
+    analysis <- analysis %>% filter(is.finite(egfr_ckdepi_2021), egfr_ckdepi_2021 >= 60)
+  }
+  if (scenario$panel == "joint") {
+    analysis <- analysis %>% filter(is.finite(log_primary_LBXBPB), is.finite(log_primary_URXUCD))
+  }
+  analysis %>% mutate(cycle_f = factor(SDDSRVYR)) %>% droplevels()
+}
 
 model_covariates <- function(metal, panel) {
   variables <- c("RIDAGEYR", "RIAGENDR_f", "RIDRETH1_f", "DMDEDUC2_f",

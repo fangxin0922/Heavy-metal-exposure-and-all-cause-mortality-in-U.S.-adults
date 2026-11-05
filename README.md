@@ -19,6 +19,18 @@ python3 metal_survival_analysis/run_analysis.py --workers 16 --prepare-workers 4
 
 The runner executes the input scripts, `impute_covariates.R`, `fit_cqr.R`, `summarize_results.R`, `survey_cox.R` and `draw_figures.R`. `--scope primary` selects the four primary cohorts; the default runs all 23 scenarios.
 
+### Urinary sensitivity cohort correction
+
+The Cd/As Portnoy, age ≥55 and BMI-omission sensitivities, and both joint Pb/Cd specifications, require **finite observed baseline eGFR ≥60 mL/min/1.73 m² before imputation**. Missing observed eGFR and values below 60 are excluded. These eight corrected scenarios use distinct names (`portnoy_egfr60_Cd/As`, `age55plus_egfr60_Cd/As`, `no_bmi_egfr60_Cd/As` and `joint_egfr60_Pb/Cd`) so earlier unrestricted outputs are not reused or relabelled. All runs require empty output folders.
+
+The primary Cd/As cohorts are `egfr60_Cd` and `egfr60_As`. Their preparations finish before dependent sensitivities begin. The restricted Portnoy models reuse the exact five primary completed datasets, sampling weights and formulas, changing only the estimator. Age ≥55 and BMI-omission sensitivities receive five fresh imputations after eligibility selection. Continuous eGFR adjustment is retained in Cd/As formulas.
+
+Both joint specifications use the same Cd-eligible cohort with finite Pb and Cd log exposures and Cd component sampling weights. They are additive mutual-adjustment models, not Pb×Cd product interactions. The Pb-target formula retains its original covariates; the Cd-target formula additionally adjusts for continuous eGFR. Both apply the renal eligibility restriction.
+
+The explicit unrestricted urinary comparisons remain `primary_Cd` and `primary_As`, despite their historical names; they are not the designated primary analyses. The separate `rcs_Cd` branch in this repository also retains its historical unrestricted cohort and does not reproduce the separately corrected renal-restricted cadmium spline. Blood Pb/Hg sensitivities and biomarker EMM retain their existing definitions.
+
+This update corrects analysis code. Earlier unrestricted sensitivity estimates are not corrected results; new estimates and intervals require a fresh run. Participant data, fitted objects and newly computed estimates are not included in this update.
+
 Supply these study inputs under `data/metal_survival/`, or set `HM_DATA_DIR` to their parent directory:
 
 - `analytic.rds`: the complete study-supplied reference frame covering NHANES cycles 1–10, before the baseline corrections, with the specified column types and factor levels. The outcome models select cycles 1–8; the full reference frame is needed for creatinine standardization.

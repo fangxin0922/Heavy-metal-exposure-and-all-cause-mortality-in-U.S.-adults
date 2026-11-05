@@ -22,6 +22,17 @@ specification <- readRDS(file.path(input_dir, "specification.rds"))
 imputations <- readRDS(file.path(input_dir, "imputations.rds"))
 analysis <- imputations$data[[imputation]]
 rm(imputations)
+catalog <- SCENARIOS[match(scenario, SCENARIOS$scenario), ]
+stopifnot(identical(specification$scenario, scenario))
+if (catalog$require_egfr60) {
+  stopifnot(isTRUE(specification$require_egfr60),
+            length(specification$observed_egfr) == nrow(analysis),
+            all(is.finite(specification$observed_egfr)),
+            all(specification$observed_egfr >= 60))
+  if ("egfr_ckdepi_2021" %in% names(analysis)) {
+    stopifnot(identical(analysis$egfr_ckdepi_2021, specification$observed_egfr))
+  }
+}
 weights <- specification$sampling_weights
 analysis$.analysis_weight <- as.numeric(weights) / mean(weights)
 stopifnot(length(weights) == nrow(analysis),

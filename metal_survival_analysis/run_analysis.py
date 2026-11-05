@@ -12,9 +12,15 @@ RUN = Path(__file__).resolve().parent
 REL = RUN.relative_to(ROOT)
 PRIMARY = ['primary_Pb', 'primary_Hg', 'egfr60_Cd', 'egfr60_As']
 ALL = PRIMARY + ['primary_Cd', 'primary_As']
-ALL += [f'{panel}_{metal}' for panel in ['no_bmi', 'age55plus', 'portnoy']
+ALL += [f'{panel}_{"egfr60_" if metal in ["Cd", "As"] else ""}{metal}'
+        for panel in ['no_bmi', 'age55plus', 'portnoy']
         for metal in ['Pb', 'Hg', 'Cd', 'As']]
-ALL += ['joint_Pb', 'joint_Cd', 'epa_dha_Hg', 'rcs_Pb', 'rcs_Cd']
+ALL += ['joint_egfr60_Pb', 'joint_egfr60_Cd', 'epa_dha_Hg', 'rcs_Pb', 'rcs_Cd']
+PREPARATION_DEPENDENCIES = {
+    f'{panel}_egfr60_{metal}': f'egfr60_{metal}'
+    for panel in ['no_bmi', 'age55plus', 'portnoy'] for metal in ['Cd', 'As']}
+PREPARATION_DEPENDENCIES.update({
+    'joint_egfr60_Pb': 'egfr60_Cd', 'joint_egfr60_Cd': 'egfr60_Cd'})
 ENV = dict(os.environ, OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1',
            MKL_NUM_THREADS='1', BLIS_NUM_THREADS='1')
 OUTPUTS = ['data', 'models', 'fits', 'results', 'logs', 'diagnostics', 'figures']
@@ -58,25 +64,38 @@ def main():
         for script in ['exposure_records', 'survival_records', 'adjustment_data', 'cohort_builder']:
             run_r(script + '.R', [], script)
 
-        # Prepare each scenario before scheduling its five CQR fits.
+        # Complete primary preparations before their dependent sensitivities;
+        # primary fits may continue while the sensitivities are prepared.
         errors = []
+        prepared = set()
         with ThreadPoolExecutor(max_workers=args.workers) as fitting:
             fit_jobs = []
             with ThreadPoolExecutor(max_workers=args.prepare_workers) as preparation:
-                preparation_jobs = {
-                    preparation.submit(run_r, 'impute_covariates.R', [scenario], scenario): scenario
-                    for scenario in scenarios}
-                for future in as_completed(preparation_jobs):
-                    scenario = preparation_jobs[future]
-                    try:
-                        future.result()
-                    except Exception as error:
-                        errors.append(str(error))
-                        continue
-                    for mi in range(1, 6):
-                        fit_jobs.append(fitting.submit(
-                            run_r, 'fit_cqr.R', [scenario, mi, 0 if args.points_only else 400],
-                            f'{scenario}_{mi}'))
+                batches = [[scenario for scenario in scenarios if scenario in PRIMARY],
+                           [scenario for scenario in scenarios if scenario not in PRIMARY]]
+                for batch in batches:
+                    preparation_jobs = {}
+                    for scenario in batch:
+                        dependency = PREPARATION_DEPENDENCIES.get(scenario)
+                        if dependency is not None and dependency not in prepared:
+                            errors.append(f'{scenario} skipped: required preparation '
+                                          f'{dependency} failed.')
+                            continue
+                        future = preparation.submit(
+                            run_r, 'impute_covariates.R', [scenario], scenario)
+                        preparation_jobs[future] = scenario
+                    for future in as_completed(preparation_jobs):
+                        scenario = preparation_jobs[future]
+                        try:
+                            future.result()
+                        except Exception as error:
+                            errors.append(str(error))
+                            continue
+                        prepared.add(scenario)
+                        for mi in range(1, 6):
+                            fit_jobs.append(fitting.submit(
+                                run_r, 'fit_cqr.R', [scenario, mi, 0 if args.points_only else 400],
+                                f'{scenario}_{mi}'))
             for future in as_completed(fit_jobs):
                 try:
                     future.result()
