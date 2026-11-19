@@ -92,8 +92,7 @@ if (resamples == 0L) {
 
 available <- if (is.null(coefficients)) numeric() else TAUS[apply(coefficients, 2, function(x) any(!is.na(x)))]
 # Use fixed seeds for imputation-specific summaries.
-seed <- if (scenario %in% PRIMARY) 20261029L + match(scenario, PRIMARY) * 1000L + imputation else
-  20261103L + match(scenario, SCENARIOS$scenario) * 1000L + imputation
+seed <- cqr_summary_seed(scenario, imputation)
 set.seed(seed)
 summary_error <- ""
 package_summary <- NULL

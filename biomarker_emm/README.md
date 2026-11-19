@@ -10,13 +10,15 @@ Use Linux with single-threaded OpenBLAS 0.3.26, LAPACK 3.12.0, and the R environ
 
 ## Inputs
 
-Supply the following under `data/biomarker_emm/`, or set `EMM_DATA_DIR` to their parent directory:
+Generate the observed corrected frame and parent model specifications/draw banks with `Rscript biomarker_emm/R/prepare_parent_inputs.R` after the main input stages. Retrieve native files with `Rscript scripts/fetch_public_inputs.R --biomarkers`. See the [input preparation guide](../scripts/README.md).
+
+The preparation scripts populate the following under `data/biomarker_emm/`, or set `EMM_DATA_DIR` to their parent directory:
 
 - `analytic.rds`: the observed corrected study frame.
 - `parent_models/{primary_Pb,primary_Hg,egfr60_Cd,egfr60_As}/{specification.rds,replicate_design.rds}`: parent model specifications and the fixed 400 survey draws.
 - `raw/labs/`, `raw/biomarkers/` and `raw/cbc/`: the XPT files listed in `prepare_biomarkers.R`.
 
-Outputs go to `biomarker_emm/output/`, configurable through `EMM_OUTPUT_DIR`. The `original` stage fits the full sample; complete it before the replicate stage. The main pipeline does not create the required parent survey-draw banks. These fixed banks and both study input frames are prerequisites for reproducing the reported analysis.
+Outputs go to `biomarker_emm/output/`, configurable through `EMM_OUTPUT_DIR`. The `original` stage fits the full sample; complete it before the replicate stage. The parent-input generator uses 400 Rao–Wu subbootstrap draws with seed 20260101, generated from each full component before selecting the eligible domain. It preserves the observed missing covariates and requires no imputation or outcome fits. Matching historical banks also requires identical full-component rows, order, weights, RNG, and survey runtime; generated manifests record the inputs and versions. The downstream positive rescaling remains in `prepare_models.R`.
 
 ## Run
 

@@ -19,7 +19,8 @@ SCENARIOS <- bind_rows(lapply(names(PANELS), function(panel) {
          primary = scenario %in% PRIMARY,
          previous_scenario = scenario,
          require_egfr60 = panel == "egfr60" | panel == "joint" |
-           (label %in% c("Cd", "As") & panel %in% c("portnoy", "age55plus", "no_bmi")),
+           (label %in% c("Cd", "As") & panel %in% c("portnoy", "age55plus", "no_bmi")) |
+           (label == "Cd" & panel == "rcs"),
          scenario = if_else(require_egfr60 & panel != "egfr60",
                             paste(panel, "egfr60", label, sep = "_"), scenario))
 
@@ -35,6 +36,14 @@ select_analysis_cohort <- function(input, scenario) {
     analysis <- analysis %>% filter(is.finite(log_primary_LBXBPB), is.finite(log_primary_URXUCD))
   }
   analysis %>% mutate(cycle_f = factor(SDDSRVYR)) %>% droplevels()
+}
+
+# Preserve the summary seeds used for the corrected cadmium spline amendment.
+cqr_summary_seed <- function(scenario, imputation) {
+  stopifnot(scenario %in% SCENARIOS$scenario, imputation %in% seq_len(M))
+  if (scenario == "rcs_egfr60_Cd") return(20262104L + as.integer(imputation))
+  if (scenario %in% PRIMARY) return(20261029L + match(scenario, PRIMARY) * 1000L + imputation)
+  20261103L + match(scenario, SCENARIOS$scenario) * 1000L + imputation
 }
 
 model_covariates <- function(metal, panel) {

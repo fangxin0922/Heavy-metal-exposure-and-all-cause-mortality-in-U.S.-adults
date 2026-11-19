@@ -9,7 +9,7 @@ R code for NHANES analyses of heavy-metal exposure and conditional survival time
 
 ## Getting started
 
-Requires R, Python 3, and the study input files. Participant data and fitted objects are not included; raw NHANES downloads alone are insufficient. Biomarker EMM also requires fixed parent survey-draw banks.
+Requires R, Python 3, and the retained study reference archive. [Input preparation](scripts/README.md) stages that archive, retrieves public files, and generates biomarker parent inputs. Participant data and fitted objects are not included. The original reference archive still cannot be reconstructed from raw NHANES alone.
 
 Follow the linked guides for dependencies, inputs, and commands. For the main analysis, run from the repository root with empty output folders:
 

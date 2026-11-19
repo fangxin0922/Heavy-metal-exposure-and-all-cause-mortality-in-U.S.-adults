@@ -15,12 +15,13 @@ ALL = PRIMARY + ['primary_Cd', 'primary_As']
 ALL += [f'{panel}_{"egfr60_" if metal in ["Cd", "As"] else ""}{metal}'
         for panel in ['no_bmi', 'age55plus', 'portnoy']
         for metal in ['Pb', 'Hg', 'Cd', 'As']]
-ALL += ['joint_egfr60_Pb', 'joint_egfr60_Cd', 'epa_dha_Hg', 'rcs_Pb', 'rcs_Cd']
+ALL += ['joint_egfr60_Pb', 'joint_egfr60_Cd', 'epa_dha_Hg', 'rcs_Pb', 'rcs_egfr60_Cd']
 PREPARATION_DEPENDENCIES = {
     f'{panel}_egfr60_{metal}': f'egfr60_{metal}'
     for panel in ['no_bmi', 'age55plus', 'portnoy'] for metal in ['Cd', 'As']}
 PREPARATION_DEPENDENCIES.update({
-    'joint_egfr60_Pb': 'egfr60_Cd', 'joint_egfr60_Cd': 'egfr60_Cd'})
+    'joint_egfr60_Pb': 'egfr60_Cd', 'joint_egfr60_Cd': 'egfr60_Cd',
+    'rcs_egfr60_Cd': 'egfr60_Cd'})
 ENV = dict(os.environ, OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1',
            MKL_NUM_THREADS='1', BLIS_NUM_THREADS='1')
 OUTPUTS = ['data', 'models', 'fits', 'results', 'logs', 'diagnostics', 'figures']

@@ -57,7 +57,7 @@ if (scenario$require_egfr60 && !scenario$primary) {
   stopifnot(isTRUE(primary_spec$require_egfr60), !anyNA(primary_index),
             identical(as.numeric(frame$w_metal), as.numeric(primary_spec$sampling_weights[primary_index])),
             identical(as.numeric(analysis$egfr_ckdepi_2021), as.numeric(primary_spec$observed_egfr[primary_index])))
-  if (scenario$panel %in% c("portnoy", "no_bmi")) {
+  if (scenario$panel %in% c("portnoy", "no_bmi", "rcs")) {
     stopifnot(identical(as.numeric(frame$SEQN), as.numeric(primary_spec$row_ids)))
   }
 }
