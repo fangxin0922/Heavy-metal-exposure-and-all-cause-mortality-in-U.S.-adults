@@ -1,0 +1,8 @@
+--- quantreg/src/crqfnb.f
++++ quantreg/src/crqfnb.f
+@@ -13,0 +14,3 @@
++      do23004 i = 1,n1
++      wn(i,1) = half
++23004 continue
+@@ -16 +18,0 @@
+-      wn(i,1) = half

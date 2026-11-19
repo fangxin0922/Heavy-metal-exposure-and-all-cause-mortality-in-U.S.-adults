@@ -10,7 +10,7 @@ Rscript scripts/stage_reference_input.R /path/to/reference_analytic.rds
 
 This validates and copies the retained **pre-correction, 1999–2018 study archive** without changing values, row order, factor levels or numeric representations. It must contain all ten cycles; the urinary-creatinine reference model needs cycles 9–10 even though outcome models use cycles 1–8. A corrected through-2014 dataset cannot replace this input.
 
-**Remaining prerequisite:** the original participant-screening, questionnaire harmonization, physical-activity/MET, fish food-code and dietary recall-day selection builders have not been recovered. These scripts do not reconstruct that source archive from raw NHANES, infer missing rules, or substitute imputed values. The archive's original values and missingness are required. `input_manifest.R` lists the required columns and validates their structure.
+**Remaining prerequisite:** the complete original archive-construction, questionnaire harmonization, physical-activity/MET, fish food-code and dietary recall-day selection builders have not been recovered. These scripts do not reconstruct that source archive from raw NHANES, infer missing rules, or substitute imputed values. The archive's original values and missingness are required. `input_manifest.R` lists the required columns and validates their structure. The separate `metal_survival_analysis/R/participant_flow.R` script reconstructs the current Figure 1 selection counts from native releases.
 
 ## 2. Retrieve public native files
 

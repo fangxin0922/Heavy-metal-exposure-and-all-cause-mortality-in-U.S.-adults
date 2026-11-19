@@ -108,8 +108,12 @@ class RunnerTests(TestCase):
         self.assertGreater(process.peak_fits, 1)
         self.assertTrue(process.overlap)
         self.assertIn(('summarize_results.R', EXPECTED_ALL), process.calls)
-        self.assertEqual([script for script, _ in process.calls[-3:]],
-                         ['summarize_results.R', 'survey_cox.R', 'draw_figures.R'])
+        self.assertIn(('baseline_characteristics.R', []), process.calls)
+        self.assertIn(('participant_flow.R', []), process.calls)
+        self.assertIn(('supplementary_descriptives.R', []), process.calls)
+        self.assertEqual([script for script, _ in process.calls[-4:]],
+                         ['summarize_results.R', 'spline_predictions.R',
+                          'survey_cox.R', 'draw_figures.R'])
 
     def test_primary_scope(self):
         process = RProcesses(scope='primary')
@@ -121,6 +125,9 @@ class RunnerTests(TestCase):
         self.assertEqual(len(fits), 20)
         self.assertTrue(all(args[2] == '400' for args in fits))
         self.assertIn(('summarize_results.R', EXPECTED_PRIMARY), process.calls)
+        self.assertIn(('baseline_characteristics.R', []), process.calls)
+        self.assertIn(('participant_flow.R', []), process.calls)
+        self.assertIn(('supplementary_descriptives.R', []), process.calls)
 
     def test_failed_renal_primary_blocks_only_its_dependencies(self):
         for failed in ['egfr60_Cd', 'egfr60_As']:

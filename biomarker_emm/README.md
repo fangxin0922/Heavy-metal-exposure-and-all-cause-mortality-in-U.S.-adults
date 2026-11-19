@@ -1,7 +1,5 @@
 # Biomarker effect-measure modification
 
-[Repository overview](../README.md)
-
 Nutrient-biomarker preparation, continuous interactions, checked Peng–Huang CQR, survey replicate inference, and figures.
 
 ## Requirements

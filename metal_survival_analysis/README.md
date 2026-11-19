@@ -1,8 +1,8 @@
 # Main analysis
 
-[Repository overview](../README.md)
-
 Input preparation, MICE imputation, CQR models, supplemental survey Cox models, result tables, and figures. All analyses and figures use R; Python schedules model fits.
+
+Additional manuscript analyses: [NHANES III](../nhanes3_analysis/USAGE.md), [cause-specific mortality](../cause_specific/USAGE.md), and [numerical comparison](../validation/PROTOCOL.md).
 
 ## Run
 
@@ -12,7 +12,15 @@ Run from the repository root with Python 3 and R. The analysis environment uses 
 python3 metal_survival_analysis/run_analysis.py --workers 16 --prepare-workers 4
 ```
 
-The runner executes the input scripts, `impute_covariates.R`, `fit_cqr.R`, `summarize_results.R`, `survey_cox.R` and `draw_figures.R`. `--scope primary` selects the four primary cohorts; the default runs all 23 scenarios.
+The runner prepares inputs, imputes covariates, fits the models, aggregates results and creates R figures. `--scope primary` selects the four primary cohorts; the default runs all 23 scenarios.
+
+Figure 1 is rebuilt from native demographic, mortality and metal files, with final cohort membership checked against the prepared analysis. Counts are saved under `results/participant_flow/` and R-generated PDF/PNG diagrams under `figures/`. Regenerate them with `Rscript metal_survival_analysis/R/participant_flow.R` after primary preparation.
+
+Observed baseline summaries for Table 1 are saved under `results/baseline/`: cohort counts, weighted quartiles, unweighted category counts, weighted percentages and missingness. These use the primary preimputation frames and sampling weights. Run `Rscript metal_survival_analysis/R/baseline_characteristics.R` to regenerate them after primary preparation.
+
+`results/supplementary_descriptives/` contains the inherited activity-quartile ranges, observed Hg fish-source counts, and renal-exclusion counts for restricted sensitivities. Regenerate them with `Rscript metal_survival_analysis/R/supplementary_descriptives.R` after primary preparation. Activity ranks are checked on their original reference population before model eligibility restrictions.
+
+The full run also reconstructs Figure 2 from the fitted Pb and corrected Cd splines. `results/spline_predictions/` contains predictions for all five imputations at the observed median/mode covariate profile, over the cohort's P5–P95 exposure range. The two spline PDFs under `figures/` show the curves and imputation-specific pointwise intervals from the saved package covariance. Unavailable curves remain unavailable. To regenerate these outputs from completed fits, run `Rscript metal_survival_analysis/R/spline_predictions.R`.
 
 ## Inputs
 

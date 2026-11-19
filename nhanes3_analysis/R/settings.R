@@ -1,0 +1,10 @@
+# Run from the repository root. NHANES III has its own imputation specification.
+base <- Sys.getenv('NH3_OUTPUT_DIR', 'nhanes3_analysis')
+library_path <- Sys.getenv('HM_R_LIBRARY','')
+if(nzchar(library_path)) .libPaths(c(library_path,.libPaths()))
+suppressPackageStartupMessages({library(mice);library(survival);library(quantreg)})
+for(folder in c('data','models','fits','results','audit','logs','figures'))
+  dir.create(file.path(base,folder),recursive=TRUE,showWarnings=FALSE)
+options(stringsAsFactors=FALSE)
+scenarios <- c('lead','cadmium')
+taus <- c(.10,.25,.50)

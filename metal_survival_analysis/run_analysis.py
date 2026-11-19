@@ -105,7 +105,12 @@ def main():
         if errors:
             raise RuntimeError('\n'.join(errors))
 
+        run_r('participant_flow.R', [], 'participant_flow')
+        run_r('baseline_characteristics.R', [], 'baseline_characteristics')
+        run_r('supplementary_descriptives.R', [], 'supplementary_descriptives')
         run_r('summarize_results.R', scenarios, 'summarize_results')
+        if args.scope == 'all':
+            run_r('spline_predictions.R', [], 'spline_predictions')
         run_r('survey_cox.R', [], 'survey_cox')
         run_r('draw_figures.R', [], 'draw_figures')
         print('Analysis complete. Tables are in results/ and figures are in figures/.', flush=True)

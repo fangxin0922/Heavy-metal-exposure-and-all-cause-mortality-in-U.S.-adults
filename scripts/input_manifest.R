@@ -35,7 +35,7 @@ validate_reference_input <- function(x) {
   required <- c("SEQN", "SDDSRVYR", "RIDAGEYR", "RIAGENDR", "RIDRETH1", "DMDEDUC2",
     "DMDMARTL", "INDFMPIR", "SDMVSTRA", "SDMVPSU", "URXUCR", "URXUTL", "BMXBMI",
     "LBXSCR", "LBXSCR_cal", "LBXTC", "DRXTP205", "DRXTP226", "pack_years",
-    "alq_5cat", "pa_q4_cyc", "fish_servings_wk", "fish_servings_wk_t1",
+    "alq_5cat", "pa_q4_cyc", "pa_mets_wkly_all", "fish_servings_wk", "fish_servings_wk_t1",
     "fish_servings_wk_t2", "dark_fish_30d_anchored", "fish_source",
     "log_primary_LBXBPB", "log_primary_LBXTHG", "RIAGENDR_f", "RIDRETH1_f",
     "DMDEDUC2_f", "marital_3cat")
@@ -43,6 +43,7 @@ validate_reference_input <- function(x) {
   if (length(missing)) stop("Reference archive is missing: ", paste(missing, collapse = ", "))
   stopifnot(is.data.frame(x), nrow(x) > 0,
     is.numeric(x$SEQN), is.numeric(x$SDDSRVYR), is.numeric(x$RIDAGEYR),
+    is.numeric(x$pa_mets_wkly_all),
     !anyNA(x$SEQN), !anyDuplicated(x$SEQN),
     !anyNA(x$SDDSRVYR), identical(sort(unique(as.integer(x$SDDSRVYR))), 1:10),
     all(is.finite(x$RIDAGEYR) & x$RIDAGEYR >= 40),

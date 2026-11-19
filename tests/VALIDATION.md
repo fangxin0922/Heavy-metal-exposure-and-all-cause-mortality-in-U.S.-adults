@@ -1,12 +1,17 @@
-# Validation — 19 November 2026
+# Validation — 19–20 November 2026
 
-- `tests/test_preparation.R` passed on synthetic data: eGFR boundary exclusions, fresh spline imputations, restricted-cohort knots, corrected summary seeds, survey draws generated before domain selection, generated parent inputs, and overwrite guards.
-- All four `tests/test_runner.py` tests passed, including blocking the corrected spline when primary Cd preparation fails.
-- The reference staging script and all four main input stages completed using the retained local archive and native files. All 24 checked outcome-model input columns agreed with the corrected reference within `1e-12`.
-- The corrected cadmium spline selected exactly the primary Cd participants: **7,061 participants, 1,510 deaths**.
-- All four generated parent banks reproduced the saved historical full-component sampling weights and the 400 replicate multipliers for the selected rows with **zero difference**. The variance scales also matched. Cohort sizes were Pb 24,021; Hg 18,258; Cd 7,061; As 5,552.
-- All 76 native input targets were parsed and validated; the biomarker downloader was exercised against CDC.
+All fresh analysis runs and manuscript comparisons completed. The root README remains absent.
 
-Local validation used R 4.6.1, survey 4.5, mice 3.19.0 and quantreg 6.1. Participant data, fitted objects and local validation artifacts are excluded from the repository.
+- All 23 main/sensitivity preparations reproduced the original ordered cohort IDs, formulas, weights and spline knots. All 115 fresh completed datasets matched column by column.
+- All 435 main/sensitivity CQR cells matched exactly: 390 finite estimates, confidence intervals and P values, plus 45 unavailable cells. All 115 full jobs passed the saved-fit audit.
+- NHANES III downloaded and checksum-verified nine public inputs. Both cohorts and all ten fresh imputed datasets matched the retained analysis. Sampling weights follow the original full-MEC survey-design construction. All 30 estimates, intervals and P values matched exactly after the complete resampling run.
+- All 40 cause-specific jobs completed using the checksum-verified, isolated quantreg memory repair. All 120 cells matched exactly: 30 finite estimates, intervals and P values, plus 90 unavailable cells. The cancer and cardiovascular R forest plots were inspected.
+- Every saved seed across all 165 CQR jobs matched the archived job metadata. Each job requested 400 package resamples; jobs without estimable package paths retain unavailable results. There were no fit or summary errors.
+- All 9,090 fresh Pb/Cd spline prediction rows, available confidence bounds and P95-minus-P5 exposure contrasts matched exactly: 25 available and five unavailable curves. Both the overview and imputation-specific R figures were inspected.
+- Baseline, missingness, cause-of-death, restricted-cohort, activity-quartile and fish-source summaries matched the manuscript sources. Independently rebuilt Figure 1 counts and final participant IDs matched. Final aggregate CSVs were unchanged from the checked fresh outputs. All 20 Cox and 20 Cox-spline execution checks passed; the manuscript contains no corresponding Cox coefficient targets.
+- All 4,800 biomarker survey replicates completed. Cohorts, evaluation levels, sampling weights and replicate weights matched. Rebuilt urinary-metal matrices differed at floating-point precision; one exploratory secondary interaction exceeded the point-comparison screening threshold. A control using the original matrix recovered the original estimates. Three biomarker–quantile combinations changed interval availability at the strict 400/400 finite-replicate threshold. These exceptions remain flagged. No primary BH-adjusted significant interaction emerged, and interval zero-crossing classifications agreed where both intervals were available.
+- Ten Python tests and the R spline interval-availability regression check passed; all 51 R files parsed. Scientific checks covered renal eligibility, competing-death censoring, alcohol boundaries, preserved observations during imputation, summary seeds, full-component survey draws and overwrite guards. The shared fitter also passed a complete 400-resample synthetic check.
 
-These checks validate input preparation and cohort selection. They do not constitute a new full outcome-model run or recover the missing original archive-construction rules. The retained pre-correction reference archive remains required.
+Validation used R 4.6.1, survey 4.5, mice 3.19.0 and quantreg 6.1. CQR intervals remain separate by imputation, without MI pooling or survey-design adjustment. Biomarker inference uses its documented survey-replicate method. Numerical agreement does not independently validate the study's inference choices. The comparison rule and commands are in [the protocol](../validation/PROTOCOL.md).
+
+NHANES III is reproducible from public releases. The main and biomarker preparations still require the retained pre-correction study archive; cause-specific models reuse the main preparations. Participant records, private manuscript reference tables and fitted objects are excluded from this repository.

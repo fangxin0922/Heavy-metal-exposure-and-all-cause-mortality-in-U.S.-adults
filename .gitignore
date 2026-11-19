@@ -28,3 +28,8 @@ figures/
 outputs/
 output/
 data/
+
+# Isolated native package build artifacts.
+build/
+*.tar.gz
+nhanes3_analysis/audit/
