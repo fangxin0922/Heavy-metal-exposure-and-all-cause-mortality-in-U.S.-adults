@@ -19,14 +19,6 @@ python3 metal_survival_analysis/run_analysis.py --workers 16 --prepare-workers 4
 
 The default runs all 23 scenarios; add `--scope primary` for the four primary cohorts.
 
-## Interpretation
-
-- CQR estimates conditional survival-time differences in years, not mean years of life lost or causal effects.
-- Main CQR intervals are imputation-specific, without Rubin pooling or NHANES design adjustment.
-- Biomarker EMM intervals remain provisional because numerical solver checks were not fully satisfied.
-
-See the [main analysis guide](metal_survival_analysis/README.md#urinary-sensitivity-cohort-correction) for renal eligibility restrictions and historical unrestricted comparisons.
-
 ## Attribution
 
 Adapted components draw on [Plasticizer-mixture-and-mortality](https://github.com/YZhang9719/Plasticizer-mixture-and-mortality) and [quantreg](https://github.com/cran/quantreg). Their [MIT](licenses/reference-MIT.txt) and [GPL-2-or-later](licenses/GPL-2.txt) notices are retained.
